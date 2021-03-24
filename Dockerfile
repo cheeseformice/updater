@@ -12,4 +12,4 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Define our command to be run when launching the container
-CMD ["python", "-u", "src/run.py"]
+CMD ["python", "-u", "src/start.py"]
