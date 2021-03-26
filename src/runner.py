@@ -80,6 +80,11 @@ class RunnerPool:
 
 				task.print_stack(file=sys.stdout)
 
+		else:
+			await self.post_download(table)
+
+			logging.info("[{}] done updating".format(table.name))
+
 	@with_cursors("internal")
 	async def load_loop(self, inte, table, *, inp, out):
 		assert inp is None and out is not None
@@ -403,9 +408,11 @@ class RunnerPool:
 
 		logging.debug("[{}] start update loop".format(table.name))
 
+		await inte.execute("TRUNCATE `{}_new`".format(table.name))
+
 		# Prepare query (it is waaaay faster this way)
 		query = (
-			"REPLACE INTO `{}` (`{}`) VALUES ({})"
+			"INSERT INTO `{}_new` (`{}`) VALUES ({})"
 			.format(
 				table.name,
 				"`,`".join(table.columns),
@@ -443,6 +450,10 @@ class RunnerPool:
 			# Insert data into the database
 			await inte.executemany(query, batch)
 
+		logging.debug("[{}] hash loop done".format(table.name))
+
+	@with_cursors("internal")
+	async def post_download(self, inte, table):
 		await inte.execute(
 			"SELECT COUNT(*) FROM `{}`"
 			.format(table.write_hash)
@@ -450,14 +461,14 @@ class RunnerPool:
 		row = await inte.fetchone()
 		await inte.fetchone()  # has to return None for next execute
 
-		logging.info(
+		logging.debug(
 			"[{}] initiate internal hash transfer ({} hashes)"
 			.format(table.name, row[0])
 		)
 
 		await inte.execute(
-			"REPLACE INTO `{0}` (`id`, `hashed`) \
-			SELECT `w`.`id`, `w`.`hashed` \
+			"REPLACE INTO `{0}` \
+			SELECT `w`.* \
 			FROM `{1}` as `w`"
 			.format(table.read_hash, table.write_hash)
 		)
@@ -466,4 +477,21 @@ class RunnerPool:
 
 		await inte.execute("TRUNCATE `{}`".format(table.write_hash))
 
-		logging.debug("[{}] hash loop done".format(table.name))
+		logging.debug("[{}] initiate changelog save".format(table.name))
+
+		await inte.execute(
+			"INSERT INTO `{0}_changelog` \
+			SELECT `o`.* \
+			FROM `{0}` as `o` \
+			INNER JOIN `{0}_new` as `n` ON `n`.`{1}` = `o`.`{1}`"
+			.format(table.name, table.primary)
+		)
+
+		logging.debug("[{}] transfer new data".format(table.name))
+
+		await inte.execute(
+			"REPLACE INTO `{0}` \
+			SELECT `n`.* \
+			FROM `{0}` as `n`"
+			.format(table.name)
+		)
