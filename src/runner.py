@@ -488,11 +488,15 @@ class RunnerPool:
 		logging.debug("[{}] initiate changelog save".format(table.name))
 
 		await inte.execute(
-			"INSERT INTO `{0}_changelog` \
+			"INSERT INTO `{0}_changelog` (`{2}`) \
 			SELECT `o`.* \
-			FROM `{0}` as `o` \
-			INNER JOIN `{0}_new` as `n` ON `n`.`{1}` = `o`.`{1}`"
-			.format(table.name, table.primary)
+			FROM `{0}_new` as `n` \
+			INNER JOIN `{0}` as `o` ON `n`.`{1}` = `o`.`{1}`"
+			.format(
+				table.name,
+				table.primary,
+				"`,`".join(table.columns)
+			)
 		)
 
 		logging.debug("[{}] transfer new data".format(table.name))
