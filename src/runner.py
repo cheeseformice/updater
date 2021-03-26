@@ -240,7 +240,15 @@ class RunnerPool:
 		if get_internal in tasks:
 			# Apparently tig's DB hasn't updated all results
 			# so we just update until we can.
-			raise Exception("failure in tig's db!")
+			logging.info("[{}] get_internal in tasks".format(table.name))
+			batch = await get_internal
+
+			if batch is not None:
+				while True:
+					if (await inp.get()) is None:
+						break
+
+				logging.info("[{}] get_internal wiped".format(table.name))
 
 		logging.debug(
 			"[{}] internal batches done, {}-{} unpaired hashes"
@@ -492,6 +500,6 @@ class RunnerPool:
 		await inte.execute(
 			"REPLACE INTO `{0}` \
 			SELECT `n`.* \
-			FROM `{0}` as `n`"
+			FROM `{0}_new` as `n`"
 			.format(table.name)
 		)
