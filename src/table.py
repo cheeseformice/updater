@@ -1,6 +1,30 @@
 from utils import with_cursors
 
 
+# Formulas for the composite scores
+formulas = {
+	"score_stats": (
+		"(`cheese_gathered` + `first` * 3) / POWER(round_played, 0.25)"
+	),
+	"score_shaman": "1",  # TODO
+	"score_survivor": (
+		"(1.6 * `{0}_survivor_count` + 0.8 * `{0}_mouse_killed`) "
+		"/ POWER(`{0}_shaman_count` * `{0}_round_played`, 0.25)"
+		.format("survivor")
+	),
+	"score_racing": (
+		"(2 * `{0}_first` + `{0}_podium`) "
+		"/ POWER(`{0}_round_played` * `{0}_finished_map`, 0.25)"
+		.format("racing")
+	),
+	"score_defilante": (
+		"`{0}_points` / POWER(`{0}_round_played` * `{0}_finished_map`, 0.25)"
+		.format("defilante")
+	),
+	"score_overall": None,  # TODO
+}
+
+
 class Table:
 	name: str = None
 	primary: str = None
@@ -31,8 +55,23 @@ class Table:
 			.format(database, self.name)
 		)
 		self.columns = []
+		self.write_columns = []
+		self.composite_scores = []
 		for row in await cursor.fetchall():
-			self.columns.append(row[0])
+			if self.name == "player" and row[0].startswith("score_"):
+				if row[0] == "score_overall":
+					# This score is calculated post-download
+					self.composite_scores.append(",1 as `{}`".format(row[0]))
+
+				else:
+					self.composite_scores.append(
+						",{} as `{}`".format(formulas[row[0]], row[0])
+					)
+			else:
+				self.columns.append(row[0])
+			self.write_columns.append(row[0])
+
+		self.composite_scores = "".join(self.composite_scores)
 
 		# Check if the table is empty
 		await cursor.execute(

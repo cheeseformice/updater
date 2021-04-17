@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 from utils import env, with_cursors
+from table import formulas
 
 
 PROGRESS = 5  # show progress every 5%
@@ -325,11 +326,12 @@ class RunnerPool:
 			# Send query to the database
 			await exte.execute(
 				"SELECT \
-					CRC32(CONCAT_WS('', `{0}`)), `{0}` \
+					CRC32(CONCAT_WS('', `{0}`)), `{0}`{1} \
 				FROM \
-					`{1}`"
+					`{2}`"
 				.format(
 					"`,`".join(table.columns),
+					table.composite_scores,
 					table.name
 				)
 			)
@@ -369,8 +371,10 @@ class RunnerPool:
 
 		# Prepare query (it is waaaay faster this way)
 		query = (
-			"SELECT * FROM `{}` WHERE `{}` IN ({})"
+			"SELECT `{}`{} FROM `{}` WHERE `{}` IN ({})"
 			.format(
+				"`,`".join(table.columns),
+				table.composite_scores,
 				table.name,
 				table.primary,
 				"{}," * (self.batch - 1) + "{}"  # argument placeholder
@@ -416,15 +420,17 @@ class RunnerPool:
 
 		logging.debug("[{}] start update loop".format(table.name))
 
-		await inte.execute("TRUNCATE `{}_new`".format(table.name))
+		if not table.is_empty:
+			await inte.execute("TRUNCATE `{}_new`".format(table.name))
 
 		# Prepare query (it is waaaay faster this way)
 		query = (
-			"REPLACE INTO `{}_new` (`{}`) VALUES ({})"
+			"REPLACE INTO `{}{}` (`{}`) VALUES ({})"
 			.format(
 				table.name,
-				"`,`".join(table.columns),
-				",".join(["%s"] * len(table.columns))
+				"" if table.is_empty else "_new",
+				"`,`".join(table.write_columns),
+				",".join(["%s"] * len(table.write_columns))
 			)
 		)
 
@@ -447,7 +453,7 @@ class RunnerPool:
 		# Prepare query (it is waaaay faster this way)
 		query = (
 			"INSERT INTO `{}` (`id`, `hashed`) VALUES (%s, %s)"
-			.format(table.write_hash)
+			.format(table.read_hash if table.is_empty else table.write_hash)
 		)
 
 		while True:
@@ -462,6 +468,22 @@ class RunnerPool:
 
 	@with_cursors("internal")
 	async def post_download(self, inte, table):
+		if table.name == "player":
+			logging.debug("[player] calculating overall score")
+
+			if formulas["score_overall"] is not None:
+				await inte.execute(
+					"UPDATE `player{}` \
+					SET `score_overall`={}"
+					.format(
+						"" if table.is_empty else "_new",
+						formulas["score_overall"]
+					)
+				)
+
+		if table.is_empty:
+			return
+
 		await inte.execute(
 			"SELECT COUNT(*) FROM `{}`"
 			.format(table.write_hash)
@@ -495,7 +517,7 @@ class RunnerPool:
 			.format(
 				table.name,
 				table.primary,
-				"`,`".join(table.columns)
+				"`,`".join(table.write_columns)
 			)
 		)
 
