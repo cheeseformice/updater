@@ -420,7 +420,7 @@ class RunnerPool:
 
 		# Prepare query (it is waaaay faster this way)
 		query = (
-			"INSERT INTO `{}_new` (`{}`) VALUES ({})"
+			"REPLACE INTO `{}_new` (`{}`) VALUES ({})"
 			.format(
 				table.name,
 				"`,`".join(table.columns),
