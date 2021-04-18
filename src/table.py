@@ -4,24 +4,36 @@ from utils import with_cursors
 # Formulas for the composite scores
 formulas = {
 	"score_stats": (
-		"(`cheese_gathered` + `first` * 3) / POWER(round_played, 0.25)"
+		"(`cheese_gathered` + `first` * 3) / POWER(`round_played`, 0.25)"
 	),
-	"score_shaman": "1",  # TODO
+	"score_shaman": (
+		"(`shaman_cheese` * 0.05 + `{0}` * 0.2 "
+		"+ `{0}_hard`*0.35 + `{0}_divine`*0.5) "
+		"/ POWER(`round_played`, 0.25)"
+		.format("saved_mice")
+	),
 	"score_survivor": (
-		"(1.6 * `{0}_survivor_count` + 0.8 * `{0}_mouse_killed`) "
-		"/ POWER(`{0}_shaman_count` * `{0}_round_played`, 0.25)"
-		.format("survivor")
+		"(1.6 * `{0}survivor_count` + 0.8 * `{0}mouse_killed`) "
+		"/ POWER(`{0}shaman_count` * `{0}round_played`, 0.25)"
+		.format("survivor_")
 	),
 	"score_racing": (
-		"(2 * `{0}_first` + `{0}_podium`) "
-		"/ POWER(`{0}_round_played` * `{0}_finished_map`, 0.25)"
-		.format("racing")
+		"(2 * `{0}first` + `{0}podium`) "
+		"/ POWER(`{0}round_played` * `{0}finished_map`, 0.25)"
+		.format("racing_")
 	),
 	"score_defilante": (
-		"`{0}_points` / POWER(`{0}_round_played` * `{0}_finished_map`, 0.25)"
-		.format("defilante")
+		"`{0}points` / POWER(`{0}round_played` * `{0}finished_map`, 0.25)"
+		.format("defilante_")
 	),
-	"score_overall": None,  # TODO
+
+	"score_overall": (
+		"(`score_stats` / {stats} + "
+		"`score_shaman` / {shaman} + "
+		"`score_survivor` / {survivor} + "
+		"`score_racing` / {racing} + "
+		"`score_defilante` / {defilante})"
+	),
 }
 
 
