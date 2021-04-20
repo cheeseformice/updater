@@ -471,43 +471,12 @@ class RunnerPool:
 		if table.name == "player":
 			logging.debug("[player] calculating overall score")
 
-			if table.is_empty:
-				# No data. Just hard code some values since this
-				# isn't a common process
-				tops = {
-					"stats": 35.564,
-					"shaman": 24.956,
-					"survivor": 1.580,
-					"racing": 0.861,
-					"defilante": 2.851,
-				}
-			else:
-				tops = {}
-				for score in (
-					"stats",
-					"shaman",
-					"survivor",
-					"racing",
-					"defilante",
-				):
-					await inte.execute(
-						"SELECT `{0}` FROM `player` \
-						ORDER BY `{0}` DESC LIMIT 1"
-						.format("score_" + score)
-					)
-					row = await inte.fetchone()
-					await inte.fetchone()  # has to return None
-
-					tops[score] = row[0] / 1000
-
 			await inte.execute(
 				"UPDATE `player{}` \
 				SET `score_overall`={}"
 				.format(
 					"" if table.is_empty else "_new",
-
 					formulas["score_overall"]
-					.format(**tops)
 				)
 			)
 

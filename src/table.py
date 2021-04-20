@@ -33,6 +33,13 @@ formulas = {
 		"`score_survivor` / {survivor} + "
 		"`score_racing` / {racing} + "
 		"`score_defilante` / {defilante})"
+		.format(
+			stats=35.564,
+			shaman=24.956,
+			survivor=1.580,
+			racing=0.861,
+			defilante=2.851,
+		)
 	),
 }
 
