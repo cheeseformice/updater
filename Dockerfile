@@ -1,5 +1,5 @@
 # Using official python runtime base image
-FROM python:3.7-slim
+FROM pypy:3.7-slim
 
 # Set the working directory
 WORKDIR /src
@@ -12,4 +12,4 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Define our command to be run when launching the container
-CMD ["python", "-u", "src/start.py"]
+CMD ["pypy", "-u", "src/start.py"]
