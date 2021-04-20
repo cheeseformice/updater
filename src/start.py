@@ -46,12 +46,12 @@ def run(loop, pools):
 
 
 def stop(loop, pools):
+	tasks = []
 	for pool in pools:
 		pool.close()
+		tasks.append(pool.wait_closed())
 
-	loop.run_until_complete(asyncio.wait((
-		*map(lambda pool: pool.wait_closed(), pools),
-	)))
+	loop.run_until_complete(asyncio.wait(*tasks))
 
 
 if __name__ == "__main__":
