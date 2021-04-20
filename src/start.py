@@ -7,7 +7,7 @@ import asyncio
 import logging
 import aiomysql
 
-from runner import RunnerPool
+from download import RunnerPool
 from table import Table
 from utils import env
 
