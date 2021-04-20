@@ -468,7 +468,7 @@ class RunnerPool:
 
 	@with_cursors("internal")
 	async def post_download(self, inte, table):
-		if table.name == "player":
+		if table.name == "player" and False:
 			logging.debug("[player] calculating overall score")
 
 			await inte.execute(
