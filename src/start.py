@@ -1,8 +1,3 @@
-try:
-	import uvloop
-except ImportError:
-	uvloop = None
-
 import asyncio
 import logging
 import aiomysql
@@ -16,6 +11,12 @@ logging.basicConfig(
 	format='[%(asctime)s] [%(levelname)s] %(message)s',
 	level=logging.DEBUG
 )
+
+try:
+	import uvloop
+except ImportError:
+	uvloop = None
+	logging.warning("Can't use uvloop.")
 
 
 def start(loop):
