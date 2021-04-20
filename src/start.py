@@ -1,4 +1,8 @@
-import uvloop
+try:
+	import uvloop
+except ImportError:
+	uvloop = None
+
 import asyncio
 import logging
 import aiomysql
@@ -55,7 +59,9 @@ def stop(loop, pools):
 
 
 if __name__ == "__main__":
-	uvloop.install()
+	if uvloop is not None:
+		uvloop.install()
+
 	loop = asyncio.get_event_loop()
 
 	pools = start(loop)

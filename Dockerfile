@@ -12,4 +12,4 @@ RUN pypy3 -m pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Define our command to be run when launching the container
-CMD ["pypy3", "-u", "src/start.py"]
+CMD ["pypy3", "-u", "./src/start.py"]
