@@ -1,5 +1,5 @@
 # Using official python runtime base image
-FROM pypy:3.7
+FROM pypy:3.7-slim
 
 # Set the working directory
 WORKDIR /src
