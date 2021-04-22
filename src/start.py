@@ -1,9 +1,8 @@
-import uvloop
 import asyncio
 import logging
 import aiomysql
 
-from runner import RunnerPool
+from download import RunnerPool
 from table import Table
 from utils import env
 
@@ -12,6 +11,12 @@ logging.basicConfig(
 	format='[%(asctime)s] [%(levelname)s] %(message)s',
 	level=logging.DEBUG
 )
+
+try:
+	import uvloop
+except ImportError:
+	uvloop = None
+	logging.warning("Can't use uvloop.")
 
 
 def start(loop):
@@ -46,16 +51,18 @@ def run(loop, pools):
 
 
 def stop(loop, pools):
+	tasks = []
 	for pool in pools:
 		pool.close()
+		tasks.append(pool.wait_closed())
 
-	loop.run_until_complete(asyncio.wait((
-		*map(lambda pool: pool.wait_closed(), pools),
-	)))
+	loop.run_until_complete(asyncio.wait(tasks))
 
 
 if __name__ == "__main__":
-	uvloop.install()
+	if uvloop is not None:
+		uvloop.install()
+
 	loop = asyncio.get_event_loop()
 
 	pools = start(loop)

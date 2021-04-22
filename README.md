@@ -4,7 +4,7 @@ Database updater: detect all changes in a801's database and pull them
 ## Performance
 **Memory usage** depends on the similarity in both tables; if the rows are in the same order (or just a few are misplaced), it will be minimal, but if they aren't similar at all, it can get really big if the databases are big. Python uses nearly **20MB** and when we ran this updater, **it didn't go over that threshold.**
 
-**Speed** depends on CPU speed and bandwidth. In our setup, we have an Intel Core Processor **(2.4GHz, 1 core) and 250Mbit/s** for bandwidth, and it checks **27000 rows per second** (transferring the whole database, with about **100 million users in about 1 hour**)
+**Speed** depends on CPU speed and bandwidth. In our setup, we have an Intel Core Processor **(2.4GHz, 1 core) and 250Mbit/s** for bandwidth, and it checks **150000 rows per second** (transferring the whole database, with about **100 million users in about 14 minutes**)
 
 ## How it works
 This updater acts as a middle-man between both databases (external & internal) and its purpose is to replicate the external (a801) one. Keeping in mind that their database is HUGE (near 100mil users), this replication process has to be very quick.
