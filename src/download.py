@@ -480,6 +480,17 @@ class RunnerPool:
 				)
 			)
 
+			logging.debug("[player] renaming players without #")
+
+			await inte.execute(
+				"UPDATE `player{}` \
+				SET `name`=CONCAT(`name`, '#0000') \
+				WHERE `name` NOT LIKE '%#%'"
+				.format(
+					"" if table.is_empty else "_new"
+				)
+			)
+
 		if table.is_empty:
 			return
 
