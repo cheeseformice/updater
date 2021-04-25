@@ -239,12 +239,13 @@ class RunnerPool:
 			break
 
 		if get_internal in tasks:
-			# Apparently tig's DB hasn't updated all results
-			# so we just update until we can.
-			logging.info("[{}] get_internal in tasks".format(table.name))
 			batch = await get_internal
 
 			if batch is not None:
+				# Either tig's DB hasn't updated all results or some have been
+				# deleted. We don't really want to delete ours!
+				logging.info("[{}] get_internal in tasks".format(table.name))
+
 				while True:
 					if (await inp.get()) is None:
 						break
@@ -271,36 +272,37 @@ class RunnerPool:
 			# No more needed rows for this batch, just send it
 			await out.put(new_batch)
 
-		# Finish transferring last batches
-		for task in pending:
-			batch = await task
-			if not batch:
-				await out.put(None)
-				break
+		# Finish transferring new data
+		if get_external in tasks:
+			batch = await get_external
 
-			await out.put(batch)
-
-		else:
-			while True:
-				batch = await exte.fetchmany(self.batch)
-				if not batch:
-					await out.put(None)
-					break
-
-				count += 1  # DEBUG!
-				if count % progress == 0:
-					logging.info(
-						"[{}] {}/{} batches processed ({}%)"
-						.format(
-							table.name,
-							count, total,
-							round(count / total * 100)
-						)
-					)
-
+			if batch:
 				await out.put(batch)
 
-		logging.debug("[{}] filter loop done".format(table.name))
+				while True:
+					batch = await exte.fetchmany(self.batch)
+					if not batch:
+						break
+
+					count += 1  # DEBUG!
+					if count % progress == 0:
+						logging.info(
+							"[{}] {}/{} batches processed ({}%)"
+							.format(
+								table.name,
+								count, total,
+								round(count / total * 100)
+							)
+						)
+
+					await out.put(batch)
+
+		if needed < self.batch:
+			# Batch has items, but not the required amount
+			await out.put(False)  # Signal less items
+			await out.put(new_batch)
+
+		await out.put(None)  # Signal EOF
 
 	@with_cursors("external")
 	async def fetch_loop(self, exte, table, *, inp, out, out2):
