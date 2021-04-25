@@ -39,7 +39,11 @@ def start(loop):
 
 
 def run(loop, pools):
-	runner = RunnerPool(100, 100, *pools)
+	runner = RunnerPool(
+		int(os.getenv("PIPE_SIZE", "100")),
+		int(os.getenv("BATCH_SIZE", "100")),
+		*pools
+	)
 
 	logging.debug("start all")
 	loop.run_until_complete(asyncio.wait((
