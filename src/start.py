@@ -39,7 +39,7 @@ def start(loop):
 
 
 def run(loop, pools):
-	runner = RunnerPool(100, 50, *pools)
+	runner = RunnerPool(100, 100, *pools)
 
 	logging.debug("start all")
 	loop.run_until_complete(asyncio.wait((
