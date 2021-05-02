@@ -4,6 +4,7 @@ import logging
 import aiomysql
 
 from download import RunnerPool
+from post_update import post_update
 from table import Table
 from utils import env
 
@@ -46,12 +47,17 @@ def run(loop, pools):
 		*pools
 	)
 
+	player = Table("player")
+	tribe = Table("tribe")
+	member = Table("member")
+
 	logging.debug("start all")
 	loop.run_until_complete(asyncio.wait((
-		runner.extract(Table("player")),
-		runner.extract(Table("tribe")),
-		runner.extract(Table("member")),
+		runner.extract(player),
+		runner.extract(tribe),
+		runner.extract(member),
 	)))
+	loop.run_until_complete(post_update(player, tribe, member, *pools))
 	logging.debug("end all")
 
 
