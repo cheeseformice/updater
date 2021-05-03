@@ -15,24 +15,20 @@ async def post_update(player, tribe, member, cfm, a801):
 			return await _post_update(player, tribe, member, stats, inte)
 
 
-async def _post_update(player, tribe, member, inte):
-	stats = Table("tribe_stats")
-	# Extract stats info
-	await stats.extract_info(inte, env.cfm_db, hashes=False)
-
+async def _post_update(player, tribe, member, stats, inte):
 	if not tribe.is_empty:
 		logging.debug("[tribe] calculating active tribes")
 
 		await inte.execute("TRUNCATE `tribe_active`")
 		await inte.execute(
 			"INSERT INTO `tribe_active` \
-				(`id`, `member`, `active`, `member_sqrt`) \
+				(`id`, `members`, `active`, `members_sqrt`) \
 			\
 			SELECT \
 				`t`.`id`, \
-				COUNT(`m`.`id_member`) as `member`, \
-				COUNT(`p_n`.`id`) as `active`, \
-				POWER(COUNT(`m`.`id_member`), 0.5) as `member_sqrt` \
+				COUNT(`m`.`id_member`) as `members`, \
+				COUNT(`p`.`id`) as `active`, \
+				POWER(COUNT(`m`.`id_member`), 0.5) as `members_sqrt` \
 			FROM \
 				`tribe` as `t` \
 				INNER JOIN `member` as `m` \
@@ -47,21 +43,21 @@ async def _post_update(player, tribe, member, inte):
 	# Prepare query
 	if tribe.is_empty:
 		columns = [
-			"COUNT(`m`.`id_member`) as `member`",
+			"COUNT(`m`.`id_member`) as `members`",
 			"COUNT(`p_n`.`id`) as `active`",
 		]
 		div_by = "POWER(COUNT(`m`.`id_member`), 0.5)"
 	else:
 		columns = [
-			"`t`.`member`",
+			"`t`.`members`",
 			"`t`.`active`",
 		]
-		div_by = "`t`.`member_sqrt`"
+		div_by = "`t`.`members_sqrt`"
 
 	for column in stats.columns:
 		if column not in (
 			"id",
-			"member",
+			"members",
 			"active",
 		):
 			columns.append(
