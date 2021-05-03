@@ -6,9 +6,13 @@ from utils import env
 
 
 async def post_update(player, tribe, member, cfm, a801):
+	stats = Table("tribe_stats")
+	# Extract stats info
+	await stats.extract_info(cfm, env.cfm_db, hashes=False)
+
 	async with cfm.acquire() as conn:
 		async with conn.cursor() as inte:
-			return await _post_update(player, tribe, member, inte)
+			return await _post_update(player, tribe, member, stats, inte)
 
 
 async def _post_update(player, tribe, member, inte):
