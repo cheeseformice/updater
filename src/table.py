@@ -57,7 +57,7 @@ class Table:
 		self.name = name
 
 	@with_cursors()
-	async def extract_info(self, cursor, database):
+	async def extract_info(self, cursor, database, hashes=True):
 		self.primary = "id"
 		if self.name == "member":
 			self.primary += "_member"  # ugly naming tig...
@@ -104,13 +104,14 @@ class Table:
 		await cursor.fetchone()  # has to return None so i can execute
 		self.is_empty = row[0] == 0
 
-		# Know which tables we are gonna use for hash cache
-		hash_table = "{}_hashes_{{}}".format(self.name)
-		self.read_hash = hash_table.format(0)
-		self.write_hash = hash_table.format(1)
+		if hashes:
+			# Know which tables we are gonna use for hash cache
+			hash_table = "{}_hashes_{{}}".format(self.name)
+			self.read_hash = hash_table.format(0)
+			self.write_hash = hash_table.format(1)
 
-		# Truncate the write hash cache
-		await cursor.execute(
-			"TRUNCATE `{}`"
-			.format(self.write_hash)
-		)
+			# Truncate the write hash cache
+			await cursor.execute(
+				"TRUNCATE `{}`"
+				.format(self.write_hash)
+			)
