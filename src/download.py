@@ -239,18 +239,34 @@ class RunnerPool:
 			break
 
 		if get_internal in tasks:
+			# This chunk is not executed in get_external was in tasks
+			logging.info("[{}] get_internal in tasks".format(table.name))
+
 			batch = await get_internal
+			while batch is not None:
+				for row in batch:
+					_id, new_hash = row[0], row[1]
 
-			if batch is not None:
-				# Either tig's DB hasn't updated all results or some have been
-				# deleted. We don't really want to delete ours!
-				logging.info("[{}] get_internal in tasks".format(table.name))
+					# If this id has been read by external
+					if _id in external_hashes:
+						# then we check if their hashes are different
+						if new_hash != external_hashes[_id]:
+							# and add the new hash to the batch
+							new_batch.append((
+								_id,
+								external_hashes[_id]
+							))
+							needed -= 1
 
-				while True:
-					if (await inp.get()) is None:
-						break
+						# and free some memory
+						del external_hashes[_id]
 
-				logging.info("[{}] get_internal wiped".format(table.name))
+					# If this id hasn't been read by the other input
+					else:
+						# we mark it as read by this one
+						internal_hashes[_id] = new_hash
+
+				batch = await inp.get()
 
 		logging.debug(
 			"[{}] internal batches done, {}-{} unpaired hashes"
@@ -274,6 +290,7 @@ class RunnerPool:
 
 		# Finish transferring new data
 		if get_external in tasks:
+			# This chunk is not executed if get_internal was in tasks
 			batch = await get_external
 
 			if batch:
@@ -303,6 +320,50 @@ class RunnerPool:
 			await out.put(new_batch)
 
 		await out.put(None)  # Signal EOF
+
+		logging.debug("[{}] filter loop done".format(table.name))
+
+		if len(internal_hashes) >= 100000:
+			logging.debug(
+				"[{}] too many rows to delete. did tig's db update?."
+				.format(table.name)
+			)
+
+		else:
+			await self.delete_rows(
+				table,
+				list(map(str, internal_hashes.keys()))
+			)
+
+	def bulk_delete(self, inte, table, batch):
+		return inte.execute(
+			"DELETE FROM `{}` WHERE `{}` IN ({})"
+			.format(
+				table.name,
+				table.primary,
+				",".join(batch)
+			)
+		)
+
+	@with_cursors("internal")
+	async def delete_rows(self, inte, table, rows):
+		logging.debug(
+			"[{}] start delete ({} rows)"
+			.format(table.name, len(rows))
+		)
+
+		batch = None
+		needed = self.batch - len(rows)
+		while needed < 0:
+			needed += self.batch
+			batch = rows[:self.batch]
+			rows = rows[self.batch:]
+			await self.bulk_delete(inte, table, batch)
+
+		if needed < self.batch:
+			await self.bulk_delete(inte, table, rows)
+
+		logging.debug("[{}] done delete".format(table.name))
 
 	@with_cursors("external")
 	async def fetch_loop(self, exte, table, *, inp, out, out2):
