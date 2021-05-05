@@ -1,47 +1,5 @@
 from utils import with_cursors
-
-
-# Formulas for the composite scores
-formulas = {
-	"score_stats": (
-		"(`cheese_gathered` + `first` * 3) / POWER(`round_played`, 0.25)"
-	),
-	"score_shaman": (
-		"(`shaman_cheese` * 0.05 + `{0}` * 0.2 "
-		"+ `{0}_hard`*0.35 + `{0}_divine`*0.5) "
-		"/ POWER(`round_played`, 0.25)"
-		.format("saved_mice")
-	),
-	"score_survivor": (
-		"(1.6 * `{0}survivor_count` + 0.8 * `{0}mouse_killed`) "
-		"/ POWER(`{0}shaman_count` * `{0}round_played`, 0.25)"
-		.format("survivor_")
-	),
-	"score_racing": (
-		"(2 * `{0}first` + `{0}podium`) "
-		"/ POWER(`{0}round_played` * `{0}finished_map`, 0.25)"
-		.format("racing_")
-	),
-	"score_defilante": (
-		"`{0}points` / POWER(`{0}round_played` * `{0}finished_map`, 0.25)"
-		.format("defilante_")
-	),
-
-	"score_overall": (
-		"(`score_stats` / {stats} + "
-		"`score_shaman` / {shaman} + "
-		"`score_survivor` / {survivor} + "
-		"`score_racing` / {racing} + "
-		"`score_defilante` / {defilante})"
-		.format(
-			stats=35.564,
-			shaman=24.956,
-			survivor=1.580,
-			racing=0.861,
-			defilante=2.851,
-		)
-	),
-}
+from formulas import formulas
 
 
 class Table:

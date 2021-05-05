@@ -1,8 +1,38 @@
+import asyncio
 import logging
 
-from table import Table
+from datetime import datetime, timedelta
 
+from table import Table
 from utils import env
+from formulas import formulas, overall_scores
+
+
+stat_columns = (
+	"shaman_cheese",
+	"saved_mice",
+	"saved_mice_hard",
+	"saved_mice_divine",
+
+	"round_played",
+	"cheese_gathered",
+	"first",
+	"bootcamp",
+
+	"survivor_round_played",
+	"survivor_mouse_killed",
+	"survivor_shaman_count",
+	"survivor_survivor_count",
+
+	"racing_round_played",
+	"racing_finished_map",
+	"racing_first",
+	"racing_podium",
+
+	"defilante_round_played",
+	"defilante_finished_map",
+	"defilante_points",
+)
 
 
 async def post_update(player, tribe, member, cfm, a801):
@@ -15,8 +45,111 @@ async def post_update(player, tribe, member, cfm, a801):
 			return await _post_update(player, tribe, member, stats, inte)
 
 
-async def _post_update(player, tribe, member, stats, inte):
+async def _post_update(player, tribe, member, tribe_stats, inte):
+	await write_tribe_logs(tribe, tribe_stats, inte)
+
+	return await asyncio.wait((
+		write_periodic_rank(tbl, period, days, inte)
+		for (tbl, period, days) in (
+			(player, "daily", 1),
+			(player, "weekly", 7),
+			(player, "monthly", 30),
+			(tribe_stats, "daily", 1),
+			(tribe_stats, "weekly", 7),
+			(tribe_stats, "monthly", 30),
+		)
+	))
+
+
+async def write_periodic_rank(tbl, period, days, inte):
+	if tbl.is_empty:
+		return
+
+	start_from = datetime.now() - timedelta(days=days)
+	start_from = start_from.replace(hour=0, minute=0, second=0)
+
+	if tbl.name == "tribe_stats":
+		format_name = "tribe@{}".format(period)
+		target = "tribe_{}".format(period)
+		source = tbl.name
+	else:
+		format_name = "{}@{}".format(tbl.name, period)
+		target = "{}_{}".format(tbl.name, period)
+		source = "{}_new".format(tbl.name)
+
+	columns = "`,`".join(stat_columns)
+	calculations = ",".join([
+		"`n`.`{0}` - `o`.`{0}`"
+		.format(column)
+		for column in stat_columns
+	])
+	log = "{}_changelog".format(tbl.name)
+	score_formulas = ",".join([
+		"`{}` = `{}`"
+		.format(column, formula)
+		for column, formula in formulas.items()
+	])
+
+	truncate = "TRUNCATE `{}`".format(target)
+	calculate_period = (
+		"INSERT INTO \
+			`{target}` (`id`, `{columns}`) \
+		SELECT \
+			`n`.`id`, \
+			{calculations} \
+		FROM \
+			`{source}` as `n` \
+			INNER JOIN ( \
+				SELECT min(`log_id`) as `boundary`, `id` \
+				FROM `{log}` \
+				WHERE `log_date` >= `{start_from}` \
+				GROUP BY `id` \
+			) as `b` ON `b`.`id` = `n`.`id` \
+			INNER JOIN `{log}` as `o` \
+				ON `o`.`id` = `n`.`id` AND `b`.`boundary` = `o`.`log_id` \
+		WHERE \
+			`n`.`round_played` - `o`.`round_played` > 0"
+		# Yes. round_played may become negative (again, tig bugs...)
+		.format(
+			target=target,
+			columns=columns,
+			calculations=calculations,
+			source=source,
+			log=log,
+			start_from=start_from.timestamp(),
+		)
+	)
+	scores = (
+		"UPDATE `{target}` \
+		SET {formulas}"
+		.format(
+			target=target,
+			formulas=score_formulas,
+		)
+	)
+	overall_score = (
+		"UPDATE `{target}` \
+		SET \
+			`score_overall` = {formula}"
+		.format(
+			target=target,
+			formula=overall_scores[period]
+		)
+	)
+
+	logging.debug("[{}] calculating periods".format(format_name))
+	await inte.execute(truncate)
+	await inte.execute(calculate_period)
+	logging.debug("[{}] calculating scores".format(format_name))
+	await inte.execute(scores)
+	logging.debug("[{}] calculating overall score".format(format_name))
+	await inte.execute(overall_score)
+	logging.debug("[{}] done".format(format_name))
+
+
+async def write_tribe_logs(tribe, stats, inte):
 	if not tribe.is_empty:
+		stats.is_empty = False
 		logging.debug("[tribe] calculating active tribes")
 
 		await inte.execute("TRUNCATE `tribe_active`")
@@ -36,6 +169,17 @@ async def _post_update(player, tribe, member, stats, inte):
 				INNER JOIN `player_new` as `p` \
 					ON `m`.`id_member` = `p`.`id` \
 			GROUP BY `t`.`id`"
+		)
+
+		logging.debug("[tribe] write stats changelogs")
+		await inte.execute(
+			"INSERT INTO `tribe_stats_changelog` (`{}`) \
+			SELECT `o`.* \
+			FROM `tribe_active` as `n` \
+			INNER JOIN `tribe_stats` as `o` ON `n`.`id` = `o`.`id`"
+			.format(
+				"`,`".join(stats.write_columns)
+			)
 		)
 
 	logging.debug("[tribe] calculating stats")

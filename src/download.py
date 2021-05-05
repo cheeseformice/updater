@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from utils import env, with_cursors
-from table import formulas
+from formulas import overall_scores
 
 
 PROGRESS = 5  # show progress every 5%
@@ -539,7 +539,7 @@ class RunnerPool:
 				SET `score_overall`={}"
 				.format(
 					"" if table.is_empty else "_new",
-					formulas["score_overall"]
+					overall_scores["alltime"]
 				)
 			)
 
