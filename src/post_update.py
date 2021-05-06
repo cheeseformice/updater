@@ -166,7 +166,7 @@ async def write_tribe_logs(tribe, stats, inte):
 				`tribe` as `t` \
 				INNER JOIN `member` as `m` \
 					ON `t`.`id` = `m`.`id_tribe` \
-				INNER JOIN `player_new` as `p` \
+				LEFT JOIN `player_new` as `p` \
 					ON `m`.`id_member` = `p`.`id` \
 			GROUP BY `t`.`id`"
 		)
