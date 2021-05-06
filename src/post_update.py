@@ -65,7 +65,7 @@ async def write_periodic_rank(tbl, period, days, inte):
 	if tbl.is_empty:
 		return
 
-	start_from = datetime.now() - timedelta(days=days)
+	start_from = datetime.now() - timedelta(days=days - 1)
 	start_from = start_from.replace(hour=0, minute=0, second=0)
 
 	if tbl.name == "tribe_stats":
@@ -102,7 +102,7 @@ async def write_periodic_rank(tbl, period, days, inte):
 			INNER JOIN ( \
 				SELECT min(`log_id`) as `boundary`, `id` \
 				FROM `{log}` \
-				WHERE `log_date` >= `{start_from}` \
+				WHERE `log_date` >= {start_from} \
 				GROUP BY `id` \
 			) as `b` ON `b`.`id` = `n`.`id` \
 			INNER JOIN `{log}` as `o` \
@@ -116,7 +116,7 @@ async def write_periodic_rank(tbl, period, days, inte):
 			calculations=calculations,
 			source=source,
 			log=log,
-			start_from=start_from.timestamp(),
+			start_from=start_from.strftime("%Y%m%d"),
 		)
 	)
 	scores = (
