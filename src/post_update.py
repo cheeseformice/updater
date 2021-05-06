@@ -48,7 +48,7 @@ async def post_update(player, tribe, member, cfm, a801):
 async def _post_update(player, tribe, member, tribe_stats, inte):
 	await write_tribe_logs(tribe, tribe_stats, inte)
 
-	return await asyncio.wait((
+	return await asyncio.wait([
 		write_periodic_rank(tbl, period, days, inte)
 		for (tbl, period, days) in (
 			(player, "daily", 1),
@@ -58,7 +58,7 @@ async def _post_update(player, tribe, member, tribe_stats, inte):
 			(tribe_stats, "weekly", 7),
 			(tribe_stats, "monthly", 30),
 		)
-	))
+	])
 
 
 async def write_periodic_rank(tbl, period, days, inte):
