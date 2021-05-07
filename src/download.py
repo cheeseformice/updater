@@ -335,13 +335,22 @@ class RunnerPool:
 				list(map(str, internal_hashes.keys()))
 			)
 
-	def bulk_delete(self, inte, table, batch):
-		return inte.execute(
+	async def bulk_delete(self, inte, table, batch):
+		batch = ",".join(batch)
+
+		await inte.execute(
 			"DELETE FROM `{}` WHERE `{}` IN ({})"
 			.format(
 				table.name,
 				table.primary,
-				",".join(batch)
+				batch
+			)
+		)
+		await inte.execute(
+			"DELETE FROM `{}` WHERE `id` IN ({})"
+			.format(
+				table.read_hash,
+				batch
 			)
 		)
 
