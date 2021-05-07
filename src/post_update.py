@@ -168,7 +168,8 @@ async def write_tribe_logs(tribe, stats, inte):
 					ON `t`.`id` = `m`.`id_tribe` \
 				LEFT JOIN `player_new` as `p` \
 					ON `m`.`id_member` = `p`.`id` \
-			GROUP BY `t`.`id`"
+			GROUP BY `t`.`id` \
+			HAVING `active` > 0"
 		)
 
 		logging.debug("[tribe] write stats changelogs")
