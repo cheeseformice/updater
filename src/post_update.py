@@ -36,9 +36,9 @@ stat_columns = (
 
 
 async def post_update(player, tribe, member, cfm, a801):
-	stats = Table("tribe_stats")
+	tribe_stats = Table("tribe_stats")
 	# Extract stats info
-	await stats.extract_info(cfm, env.cfm_db, hashes=False)
+	await tribe_stats.extract_info(cfm, env.cfm_db, hashes=False)
 
 	async with cfm.acquire() as conn:
 		async with conn.cursor() as inte:
@@ -87,7 +87,7 @@ async def _write_periodic_rank(tbl, period, days, inte):
 	])
 	log = "{}_changelog".format(tbl.name)
 	score_formulas = ",".join([
-		"`{}` = `{}`"
+		"`{}` = {}"
 		.format(column, formula)
 		for column, formula in formulas.items()
 	])
@@ -108,10 +108,7 @@ async def _write_periodic_rank(tbl, period, days, inte):
 				GROUP BY `id` \
 			) as `b` ON `b`.`id` = `n`.`id` \
 			INNER JOIN `{log}` as `o` \
-				ON `o`.`id` = `n`.`id` AND `b`.`boundary` = `o`.`log_id` \
-		WHERE \
-			`n`.`round_played` - `o`.`round_played` > 0"
-		# Yes. round_played may become negative (again, tig bugs...)
+				ON `o`.`id` = `n`.`id` AND `b`.`boundary` = `o`.`log_id`"
 		.format(
 			target=target,
 			columns=columns,

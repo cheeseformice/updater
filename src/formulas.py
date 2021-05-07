@@ -1,26 +1,28 @@
 # Formulas for the composite scores
 formulas = {
 	"score_stats": (
-		"(`cheese_gathered` + `first` * 3) / POWER(`round_played`, 0.25)"
+		"(`cheese_gathered` + `first` * 3) "
+		"/ POWER(GREATEST(`round_played`, 1), 0.25)"
 	),
 	"score_shaman": (
 		"(`shaman_cheese` * 0.05 + `{0}` * 0.2 "
 		"+ `{0}_hard`*0.35 + `{0}_divine`*0.5) "
-		"/ POWER(`round_played`, 0.25)"
+		"/ POWER(GREATEST(`round_played`, 1), 0.25)"
 		.format("saved_mice")
 	),
 	"score_survivor": (
 		"(1.6 * `{0}survivor_count` + 0.8 * `{0}mouse_killed`) "
-		"/ POWER(`{0}shaman_count` * `{0}round_played`, 0.25)"
+		"/ POWER(GREATEST(`{0}shaman_count` * `{0}round_played`, 1), 0.25)"
 		.format("survivor_")
 	),
 	"score_racing": (
 		"(2 * `{0}first` + `{0}podium`) "
-		"/ POWER(`{0}round_played` * `{0}finished_map`, 0.25)"
+		"/ POWER(GREATEST(`{0}round_played` * `{0}finished_map`, 1), 0.25)"
 		.format("racing_")
 	),
 	"score_defilante": (
-		"`{0}points` / POWER(`{0}round_played` * `{0}finished_map`, 0.25)"
+		"`{0}points` / "
+		"POWER(GREATEST(`{0}round_played` * `{0}finished_map`, 1), 0.25)"
 		.format("defilante_")
 	),
 }
