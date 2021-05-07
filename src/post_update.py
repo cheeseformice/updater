@@ -42,14 +42,10 @@ async def post_update(player, tribe, member, cfm, a801):
 
 	async with cfm.acquire() as conn:
 		async with conn.cursor() as inte:
-			return await _post_update(player, tribe, member, stats, inte)
-
-
-async def _post_update(player, tribe, member, tribe_stats, inte):
-	await write_tribe_logs(tribe, tribe_stats, inte)
+			await write_tribe_logs(tribe, tribe_stats, inte)
 
 	return await asyncio.wait([
-		write_periodic_rank(tbl, period, days, inte)
+		write_periodic_rank(tbl, period, days, cfm)
 		for (tbl, period, days) in (
 			(player, "daily", 1),
 			(player, "weekly", 7),
@@ -61,7 +57,13 @@ async def _post_update(player, tribe, member, tribe_stats, inte):
 	])
 
 
-async def write_periodic_rank(tbl, period, days, inte):
+async def write_periodic_rank(tbl, period, days, pool):
+	async with pool.acquire() as conn:
+		async with conn.cursor() as cursor:
+			return await _write_periodic_rank(tbl, period, days, cursor)
+
+
+async def _write_periodic_rank(tbl, period, days, inte):
 	if tbl.is_empty:
 		return
 
